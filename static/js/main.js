@@ -4,7 +4,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let selectedText = '';
 const selectionMenu = document.getElementById('selection-menu');
 let currentPdf = null;
-let currentScale = 1.5;
+let currentScale = 1.75;
 const SCALE_STEP = 0.25;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
@@ -416,7 +416,7 @@ function zoomOut() {
 }
 
 function resetZoom() {
-    currentScale = 1.5;
+    currentScale = 1.75;
     reloadPDF();
 }
 

@@ -410,13 +410,14 @@ button:hover {
     background-color: #e3f2fd;
 }
 
-/* 修改箭头样式 */
+/* 修改箭头方向逻辑 */
 .sidebar-toggle i {
+    transform: rotate(180deg); /* 默认状态（折叠时）箭头向右 */
     transition: transform 0.3s ease;
 }
 
 .sidebar.collapsed .sidebar-toggle i {
-    transform: rotate(180deg);  /* 修改旋转方向 */
+    transform: rotate(0deg); /* 展开时箭头向左 */
 }
 
 .pdf-controls {
