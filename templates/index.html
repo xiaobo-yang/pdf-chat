@@ -4,14 +4,33 @@
     <title>PDF阅读器与AI助手</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf_viewer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <div class="pdf-viewer">
             <div id="pdf-container"></div>
-            <div id="selection-menu" class="selection-menu">
-                <button onclick="handleTranslate()">翻译</button>
-                <button onclick="handleAnalyze()">解析</button>
+            <div id="upload-container" class="upload-container">
+                <div class="upload-area">
+                    <i class="fas fa-file-pdf"></i>
+                    <h2>上传PDF文件</h2>
+                    <p>点击或拖拽文件到这里</p>
+                    <input type="file" id="pdf-upload" accept=".pdf" hidden>
+                    <button id="upload-btn" class="upload-btn">选择文件</button>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="sidebar-toggle">
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <button class="upload-btn" onclick="document.getElementById('pdf-upload').click()">
+                        <i class="fas fa-upload"></i> 上传
+                    </button>
+                </div>
+                <div class="file-list"></div>
             </div>
         </div>
         <div class="chat-container">
@@ -23,9 +42,7 @@
         </div>
     </div>
     
-    <!-- 引入PDF.js库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.11.338/pdf.min.js"></script>
-    <!-- 引入自定义的JavaScript文件 -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
