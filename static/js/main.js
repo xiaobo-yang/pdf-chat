@@ -4,6 +4,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 let selectedText = '';
 const selectionMenu = document.getElementById('selection-menu');
 let currentPdf = null;
+let currentScale = 1.5;
+const SCALE_STEP = 0.25;
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 3.0;
 
 // 创建浮动按钮
 const floatingMenu = document.createElement('div');
@@ -206,6 +210,7 @@ document.getElementById('user-input').addEventListener('keypress', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     initializeSidebar();
     initializeUploader();
+    initializePdfControls();
 });
 
 function initializeSidebar() {
@@ -372,55 +377,90 @@ function formatFileSize(bytes) {
 // 修改showFile函数
 async function showFile(url) {
     try {
-        // 隐藏上传容器，显示PDF容器
         document.getElementById('upload-container').style.display = 'none';
         const pdfContainer = document.getElementById('pdf-container');
         pdfContainer.style.display = 'block';
+        document.querySelector('.pdf-controls').style.display = 'flex';
 
-        // 加载PDF
         const loadingTask = pdfjsLib.getDocument(url);
         currentPdf = await loadingTask.promise;
-        
-        // 清空容器
-        pdfContainer.innerHTML = '';
-        
-        // 加载所有页面
-        for (let pageNum = 1; pageNum <= currentPdf.numPages; pageNum++) {
-            const page = await currentPdf.getPage(pageNum);
-            const scale = 1.5;
-            const viewport = page.getViewport({ scale });
-
-            const pageContainer = document.createElement('div');
-            pageContainer.className = 'pdf-page';
-            pageContainer.style.position = 'relative';
-            pdfContainer.appendChild(pageContainer);
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-            pageContainer.appendChild(canvas);
-
-            const textLayerDiv = document.createElement('div');
-            textLayerDiv.className = 'textLayer';
-            textLayerDiv.style.width = `${viewport.width}px`;
-            textLayerDiv.style.height = `${viewport.height}px`;
-            pageContainer.appendChild(textLayerDiv);
-
-            await page.render({
-                canvasContext: context,
-                viewport: viewport
-            }).promise;
-
-            const textContent = await page.getTextContent();
-            pdfjsLib.renderTextLayer({
-                textContent: textContent,
-                container: textLayerDiv,
-                viewport: viewport,
-                textDivs: []
-            });
-        }
+        await renderPDF(currentPdf);
     } catch (error) {
         console.error('Error loading PDF:', error);
+    }
+}
+
+function initializePdfControls() {
+    const controls = document.createElement('div');
+    controls.className = 'pdf-controls';
+    controls.innerHTML = `
+        <button onclick="zoomIn()"><i class="fas fa-search-plus"></i> 放大</button>
+        <button onclick="zoomOut()"><i class="fas fa-search-minus"></i> 缩小</button>
+        <button onclick="resetZoom()"><i class="fas fa-undo"></i> 重置</button>
+    `;
+    document.querySelector('.pdf-viewer').appendChild(controls);
+}
+
+function zoomIn() {
+    if (currentScale < MAX_SCALE) {
+        currentScale += SCALE_STEP;
+        reloadPDF();
+    }
+}
+
+function zoomOut() {
+    if (currentScale > MIN_SCALE) {
+        currentScale -= SCALE_STEP;
+        reloadPDF();
+    }
+}
+
+function resetZoom() {
+    currentScale = 1.5;
+    reloadPDF();
+}
+
+async function reloadPDF() {
+    if (!currentPdf) return;
+    await renderPDF(currentPdf);
+}
+
+async function renderPDF(pdf) {
+    const container = document.getElementById('pdf-container');
+    container.innerHTML = '';
+    
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: currentScale });
+
+        const pageContainer = document.createElement('div');
+        pageContainer.className = 'pdf-page';
+        pageContainer.style.position = 'relative';
+        container.appendChild(pageContainer);
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        pageContainer.appendChild(canvas);
+
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
+        pageContainer.appendChild(textLayerDiv);
+
+        await page.render({
+            canvasContext: context,
+            viewport: viewport
+        }).promise;
+
+        const textContent = await page.getTextContent();
+        pdfjsLib.renderTextLayer({
+            textContent: textContent,
+            container: textLayerDiv,
+            viewport: viewport,
+            textDivs: []
+        });
     }
 }
