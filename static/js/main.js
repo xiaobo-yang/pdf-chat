@@ -224,6 +224,21 @@ function initializeUploader() {
     const fileInput = document.getElementById('pdf-upload');
     const uploadContainer = document.getElementById('upload-container');
     const uploadArea = document.querySelector('.upload-area');
+    const uploadBtn = document.getElementById('upload-btn');
+
+    // 修复初始上传按钮
+    uploadBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        fileInput.click();
+    });
+
+    // 修复上传区域点击
+    uploadArea.addEventListener('click', (e) => {
+        if (e.target !== uploadBtn) {
+            fileInput.click();
+        }
+    });
 
     // 拖拽上传
     uploadArea.addEventListener('dragover', (e) => {
