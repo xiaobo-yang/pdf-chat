@@ -37,7 +37,23 @@
             <div id="chat-messages"></div>
             <div class="input-area">
                 <input type="text" id="user-input" placeholder="输入消息...">
-                <button onclick="sendMessage()">发送</button>
+                <div class="chat-buttons">
+                    <button onclick="sendMessage()">发送</button>
+                    <button onclick="newChat()" class="new-chat-btn">
+                        <i class="fas fa-plus"></i> 新建
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="history-sidebar">
+            <div class="history-toggle">
+                <i class="fas fa-history"></i>
+            </div>
+            <div class="history-content">
+                <div class="history-header">
+                    <h3>历史对话</h3>
+                </div>
+                <div class="history-list"></div>
             </div>
         </div>
     </div>

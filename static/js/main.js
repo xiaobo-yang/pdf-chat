@@ -9,6 +9,10 @@ const SCALE_STEP = 0.25;
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 3.0;
 
+// 全局变量
+let chatHistories = {};  // 存储所有对话历史
+let currentChatId = 'default';  // 当前对话ID
+
 // 创建浮动按钮
 const floatingMenu = document.createElement('div');
 floatingMenu.className = 'floating-menu';
@@ -172,6 +176,12 @@ function addMessage(sender, text) {
     messageDiv.textContent = text;
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // 保存到历史记录
+    if (!chatHistories[currentChatId]) {
+        chatHistories[currentChatId] = [];
+    }
+    chatHistories[currentChatId].push({ role: sender, content: text });
 }
 
 // 发送聊天消息
@@ -211,6 +221,8 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSidebar();
     initializeUploader();
     initializePdfControls();
+    initializeHistorySidebar();  // 添加这行
+    newChat();  // 创建初始对话
 });
 
 function initializeSidebar() {
@@ -501,5 +513,101 @@ async function renderPDF(pdf) {
             viewport: viewport,
             textDivs: []
         });
+    }
+}
+
+// 初始化历史记录边栏
+function initializeHistorySidebar() {
+    const sidebar = document.querySelector('.history-sidebar');
+    const toggleBtn = document.querySelector('.history-toggle');
+    
+    toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+    });
+    
+    // 默认折叠历史记录栏
+    sidebar.classList.add('collapsed');
+}
+
+// 新建对话
+async function newChat() {
+    // 生成新的对话ID
+    currentChatId = 'chat_' + Date.now();
+    
+    // 清空当前对话框
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = '';
+    
+    // 保存当前对话到历史记录
+    addChatToHistory(currentChatId);
+}
+
+// 添加对话到历史记录列表
+function addChatToHistory(chatId) {
+    const historyList = document.querySelector('.history-list');
+    const historyItem = document.createElement('div');
+    historyItem.className = 'history-item';
+    historyItem.dataset.chatId = chatId;
+    
+    const date = new Date();
+    historyItem.innerHTML = `
+        <i class="fas fa-comments"></i>
+        <span>对话 ${date.toLocaleString()}</span>
+        <i class="fas fa-times delete-history"></i>
+    `;
+    
+    // 点击切换对话
+    historyItem.addEventListener('click', (e) => {
+        if (!e.target.matches('.delete-history')) {
+            switchChat(chatId);
+        }
+    });
+    
+    // 删除对话
+    const deleteBtn = historyItem.querySelector('.delete-history');
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteChat(chatId);
+    });
+    
+    historyList.insertBefore(historyItem, historyList.firstChild);
+}
+
+// 切换到指定对话
+function switchChat(chatId) {
+    currentChatId = chatId;
+    
+    // 更新UI激活状态
+    document.querySelectorAll('.history-item').forEach(item => {
+        item.classList.remove('active');
+        if (item.dataset.chatId === chatId) {
+            item.classList.add('active');
+        }
+    });
+    
+    // 加载对话内容
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = '';
+    if (chatHistories[chatId]) {
+        chatHistories[chatId].forEach(msg => {
+            addMessage(msg.role, msg.content);
+        });
+    }
+}
+
+// 删除对话
+function deleteChat(chatId) {
+    // 从DOM中移除
+    const historyItem = document.querySelector(`.history-item[data-chat-id="${chatId}"]`);
+    if (historyItem) {
+        historyItem.remove();
+    }
+    
+    // 从存储中删除
+    delete chatHistories[chatId];
+    
+    // 如果删除的是当前对话，创建新对话
+    if (chatId === currentChatId) {
+        newChat();
     }
 }
