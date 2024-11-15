@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 from qwen_agent.agents import Assistant
 import os
 from werkzeug.utils import secure_filename
+import json
 
 app = Flask(__name__)
 
@@ -140,7 +141,9 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        folder = app.config['UPLOAD_FOLDER']
+        os.makedirs(folder, exist_ok=True)
+        filepath = os.path.join(folder, filename)
         file.save(filepath)
         return jsonify({
             'message': 'File uploaded successfully',
@@ -192,6 +195,61 @@ def update_reference_files():
                 
         return jsonify({'success': True})
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/save-histories', methods=['POST'])
+def save_histories():
+    try:
+        data = request.json
+        histories = data.get('histories', {})
+        current_chat_id = data.get('currentChatId')
+        
+        # 确保存储目录存在
+        histories_path = os.path.join('static', 'histories')
+        os.makedirs(histories_path, exist_ok=True)
+        
+        # 保存历史记录和当前会话ID
+        save_data = {
+            'histories': histories,
+            'currentChatId': current_chat_id
+        }
+        
+        with open(os.path.join(histories_path, 'chat_histories.json'), 'w', encoding='utf-8') as f:
+            json.dump(save_data, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"保存历史记录失败: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/load-histories')
+def load_histories():
+    try:
+        histories_path = os.path.join('static', 'histories', 'chat_histories.json')
+        if os.path.exists(histories_path):
+            with open(histories_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return jsonify(data)
+        return jsonify({'histories': {}, 'currentChatId': None})
+    except Exception as e:
+        print(f"加载历史记录失败: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/load-pdfs')
+def load_pdfs():
+    try:
+        pdf_files = []
+        for filename in os.listdir(UPLOAD_FOLDER):
+            if filename.lower().endswith('.pdf'):
+                file_path = os.path.join(UPLOAD_FOLDER, filename)
+                pdf_files.append({
+                    'name': filename,
+                    'url': f'/static/uploads/{filename}',
+                    'size': os.path.getsize(file_path)
+                })
+        return jsonify({'files': pdf_files})
+    except Exception as e:
+        print(f"加载PDF文件列表失败: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

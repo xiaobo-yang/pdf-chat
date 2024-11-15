@@ -177,12 +177,16 @@ function addMessage(sender, text, skipHistory = false) {
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    // 只有在不是加载历史记录时才保存到历史记录
-    if (!skipHistory) {
-        if (!chatHistories[currentChatId]) {
-            chatHistories[currentChatId] = [];
+    if (!skipHistory && currentChatId) {
+        // 确保 messages 数组存在
+        if (!chatHistories[currentChatId].messages) {
+            chatHistories[currentChatId].messages = [];
         }
-        chatHistories[currentChatId].push({ role: sender, content: text });
+        chatHistories[currentChatId].messages.push({
+            role: sender,
+            content: text
+        });
+        saveChatHistories();
     }
 }
 
@@ -221,12 +225,17 @@ document.getElementById('user-input').addEventListener('keypress', function(e) {
 });
 
 // 页面加载完成后加载PDF
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     initializeSidebar();
     initializeUploader();
     initializePdfControls();
-    initializeHistorySidebar();  // 添加这行
-    newChat();  // 创建初始对话
+    initializeHistorySidebar();
+    
+    // 加载历史对话
+    await loadChatHistories();
+    
+    // 加载PDF文件列表
+    await loadPdfFiles();
 });
 
 function initializeSidebar() {
@@ -564,22 +573,34 @@ function addChatToHistory(chatId) {
     historyItem.className = 'history-item';
     historyItem.dataset.chatId = chatId;
     
+    // 生成默认名称
     const date = new Date();
+    const defaultName = `对话 ${date.toLocaleString()}`;
+    
+    // 如果是新会话，将其添加到 chatHistories
+    if (!chatHistories[chatId]) {
+        chatHistories[chatId] = {
+            name: defaultName,
+            messages: []
+        };
+    }
+    
     historyItem.innerHTML = `
         <i class="fas fa-comments"></i>
-        <span class="chat-name">对话 ${date.toLocaleString()}</span>
+        <span class="chat-name">${chatHistories[chatId].name}</span>
         <i class="fas fa-pencil-alt edit-history"></i>
         <i class="fas fa-times delete-history"></i>
     `;
     
     // 点击切换对话
     historyItem.addEventListener('click', (e) => {
-        if (!e.target.matches('.delete-history, .edit-history')) {
+        // 确保不是点击编辑或删除按钮
+        if (!e.target.matches('.edit-history, .delete-history')) {
             switchChat(chatId);
         }
     });
     
-    // 编辑对话名称
+    // 编辑会话名称
     const editBtn = historyItem.querySelector('.edit-history');
     editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -597,7 +618,9 @@ function addChatToHistory(chatId) {
             const newName = input.value.trim() || currentName;
             nameSpan.textContent = newName;
             input.replaceWith(nameSpan);
-            saveChatHistories();  // 保存更改
+            // 更新存储的名称
+            chatHistories[chatId].name = newName;
+            saveChatHistories();
         });
         
         input.addEventListener('keypress', (e) => {
@@ -614,14 +637,32 @@ function addChatToHistory(chatId) {
         deleteChat(chatId);
     });
     
-    historyList.insertBefore(historyItem, historyList.firstChild);
+    // 根据是否是新会话决定插入位置
+    if (chatHistories[chatId].messages.length === 0) {
+        // 新会话插入到顶部
+        historyList.insertBefore(historyItem, historyList.firstChild);
+    } else {
+        // 加载已有会话时追加到列表
+        historyList.appendChild(historyItem);
+    }
 }
 
 // 切换到指定对话
 function switchChat(chatId) {
+    if (!chatHistories[chatId]) return;
+    
     currentChatId = chatId;
     
-    // 更新UI激活状态
+    // 清空当前对话框
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = '';
+    
+    // 加载会话消息
+    chatHistories[chatId].messages.forEach(msg => {
+        addMessage(msg.role, msg.content, true);
+    });
+    
+    // 更新激活状态
     document.querySelectorAll('.history-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.chatId === chatId) {
@@ -629,14 +670,7 @@ function switchChat(chatId) {
         }
     });
     
-    // 加载对话内容
-    const chatMessages = document.getElementById('chat-messages');
-    chatMessages.innerHTML = '';
-    if (chatHistories[chatId]) {
-        chatHistories[chatId].forEach(msg => {
-            addMessage(msg.role, msg.content, true);  // 添加 skipHistory 参数
-        });
-    }
+    saveChatHistories();
 }
 
 // 修改删除对话函数
@@ -681,5 +715,91 @@ function deleteChat(chatId) {
         // 如果不是当前对话，直接删除即可
         historyItem.remove();
         delete chatHistories[chatId];
+    }
+    
+    // 在删除对话后保存历史记录
+    saveChatHistories();
+}
+
+// 保存聊天历史到本地文件
+async function saveChatHistories() {
+    try {
+        const response = await fetch('/api/save-histories', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                histories: chatHistories,
+                currentChatId: currentChatId
+            })
+        });
+        if (!response.ok) {
+            throw new Error('保存聊天历史失败');
+        }
+    } catch (error) {
+        console.error('保存聊天历史出错:', error);
+    }
+}
+
+// 加载聊天历史
+async function loadChatHistories() {
+    try {
+        const response = await fetch('/api/load-histories');
+        const data = await response.json();
+        if (data.histories) {
+            chatHistories = data.histories;
+            // 重建历史记录UI
+            const historyList = document.querySelector('.history-list');
+            historyList.innerHTML = '';
+            
+            // 按时间戳倒序排序（新的在前）
+            const sortedChatIds = Object.keys(chatHistories).sort((a, b) => {
+                // 从ID中提取时间戳
+                const timeA = parseInt(a.split('_')[1]);
+                const timeB = parseInt(b.split('_')[1]);
+                return timeB - timeA;  // 倒序排序
+            });
+            
+            // 按排序后的顺序添加到历史记录
+            sortedChatIds.forEach(chatId => {
+                addChatToHistory(chatId);
+            });
+            
+            // 如果有当前会话ID，切换到它
+            if (data.currentChatId && chatHistories[data.currentChatId]) {
+                switchChat(data.currentChatId);
+            } else if (sortedChatIds.length > 0) {
+                // 否则切换到最新的会话
+                switchChat(sortedChatIds[0]);
+            } else {
+                // 如果没有任何会话，创建新会话
+                newChat();
+            }
+        } else {
+            newChat();
+        }
+    } catch (error) {
+        console.error('加载聊天历史出错:', error);
+        newChat();
+    }
+}
+
+// 加载PDF文件列表
+async function loadPdfFiles() {
+    try {
+        const response = await fetch('/api/load-pdfs');
+        const data = await response.json();
+        if (data.files) {
+            data.files.forEach(file => {
+                addFileToList({
+                    name: file.name,
+                    url: file.url,
+                    size: file.size
+                });
+            });
+        }
+    } catch (error) {
+        console.error('加载PDF文件列表失败:', error);
     }
 }
