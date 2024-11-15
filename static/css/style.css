@@ -484,3 +484,47 @@ button:hover {
     cursor: text;
     transform-origin: 0% 0%;
 }
+
+/* 复选框容器 */
+.checkbox-container {
+    display: inline-block;
+    position: relative;
+    padding-left: 20px;
+    margin-right: 10px;
+    cursor: pointer;
+    user-select: none;
+}
+
+/* 隐藏默认复选框 */
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+/* 自定义复选框样式 */
+.checkmark {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    height: 16px;
+    width: 16px;
+    background-color: white;
+    border: 2px solid #ddd;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+/* 悬停效果 */
+.checkbox-container:hover .checkmark {
+    border-color: #2196F3;
+}
+
+/* 选中状态 */
+.checkbox-container input:checked ~ .checkmark {
+    background-color: #4CAF50;
+    border-color: #4CAF50;
+}

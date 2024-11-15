@@ -15,10 +15,14 @@ llm_cfg = {
 }
 
 # 创建AI助手实例
+tools = ['code_interpreter']  # `code_interpreter` is a built-in tool for executing code.
+files = ['sample.pdf']  # Give the bot a PDF file to read.
 bot = Assistant(
     llm=llm_cfg,
     system_message="你是一个有帮助的助手，可以帮助用户进行翻译、解析和对话。请直接回答用户的问题，无需解释你的角色。",
-)
+    # function_list=tools,
+    # files=files,
+    )
 
 # 存储对话历史
 chat_histories = {}
@@ -127,10 +131,6 @@ def handle_analyze():
     
     return jsonify({'result': responses[-1]['content']})
 
-@app.route('/static/sample.pdf')
-def sample_pdf():
-    return send_from_directory('static', 'sample.pdf')
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'pdf' not in request.files:
@@ -165,6 +165,27 @@ def delete_file():
             return jsonify({'message': 'File deleted successfully'})
         else:
             return jsonify({'error': 'File not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/update-reference-files', methods=['POST'])
+def update_reference_files():
+    try:
+        data = request.json
+        file_url = data.get('url')
+        is_checked = data.get('checked')
+        
+        # 将URL转换为实际文件路径
+        file_path = os.path.join('static/uploads', os.path.basename(file_url))
+        
+        if is_checked:
+            if file_path not in bot.mem.system_files:
+                bot.mem.system_files.append(file_path)
+        else:
+            if file_path in bot.mem.system_files:
+                bot.mem.system_files.remove(file_path)
+                
+        return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

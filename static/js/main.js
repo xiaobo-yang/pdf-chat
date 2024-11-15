@@ -309,6 +309,10 @@ function addFileToList(fileInfo) {
     const fileItem = document.createElement('div');
     fileItem.className = 'file-item';
     fileItem.innerHTML = `
+        <label class="checkbox-container">
+            <input type="checkbox" class="file-checkbox" data-url="${fileInfo.url}">
+            <span class="checkmark"></span>
+        </label>
         <i class="fas fa-file-pdf"></i>
         <span>${fileInfo.name}</span>
         <span class="file-size">${formatFileSize(fileInfo.size)}</span>
@@ -316,20 +320,41 @@ function addFileToList(fileInfo) {
     `;
     
     // 修改点击事件
-    fileItem.addEventListener('click', () => {
-        document.querySelectorAll('.file-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        fileItem.classList.add('active');
-        showFile(fileInfo.url);
+    fileItem.addEventListener('click', (e) => {
+        if (!e.target.matches('.file-checkbox, .delete-file')) {
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            fileItem.classList.add('active');
+            showFile(fileInfo.url);
+        }
     });
-    
+
+    // 添加复选框事件
+    const checkbox = fileItem.querySelector('.file-checkbox');
+    checkbox.addEventListener('change', async function(e) {
+        e.stopPropagation();
+        try {
+            const response = await fetch('/update-reference-files', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    url: this.dataset.url,
+                    checked: this.checked
+                })
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update reference files');
+            }
+        } catch (error) {
+            console.error('Error updating reference files:', error);
+            this.checked = !this.checked; // 恢复选中状态
+        }
+    });
+
     fileList.appendChild(fileItem);
-    
-    // 如果是第一个文件，自动显示
-    if (fileList.children.length === 1) {
-        fileItem.click(); // 触发点击事件
-    }
 }
 
 async function deleteFile(url) {

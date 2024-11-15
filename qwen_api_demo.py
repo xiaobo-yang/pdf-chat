@@ -54,11 +54,11 @@ After receiving the user's request, you should:
 - and finally select an image operation from the given document to process the image.
 Please show the image using `plt.show()`.'''
 tools = ['my_image_gen', 'code_interpreter']  # `code_interpreter` is a built-in tool for executing code.
-files = ['./examples/resource/doc.pdf']  # Give the bot a PDF file to read.
+files = ['sample.pdf']  # Give the bot a PDF file to read.
 bot = Assistant(llm=llm_cfg,
                 system_message=system_instruction,
                 function_list=tools,
-                # files=files,
+                files=files,
                 )
 
 # Step 4: Run the agent as a chatbot.
