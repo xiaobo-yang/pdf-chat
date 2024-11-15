@@ -274,6 +274,8 @@ async function handleFileSelect(e) {
             await uploadFile(file);
         }
     }
+    // 清除文件输入框的值，这样同一个文件可以被重新选择
+    e.target.value = '';
 }
 
 async function uploadFile(file) {
@@ -380,6 +382,9 @@ async function deleteFile(url) {
             const fileItem = document.querySelector(`.file-item[data-url="${url}"]`);
             if (fileItem) {
                 fileItem.remove();
+                
+                // 清除文件输入框的值
+                document.getElementById('pdf-upload').value = '';
                 
                 // 如果没有文件了，显示上传区域
                 const fileList = document.querySelector('.file-list');

@@ -150,22 +150,27 @@ def upload_file():
 
 @app.route('/delete-file', methods=['POST'])
 def delete_file():
-    data = request.json
-    file_url = data.get('url')
-    if not file_url:
-        return jsonify({'error': 'No file URL provided'}), 400
-    
-    # 从URL中提取文件名
-    filename = os.path.basename(file_url)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    
     try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            return jsonify({'message': 'File deleted successfully'})
-        else:
-            return jsonify({'error': 'File not found'}), 404
+        data = request.json
+        file_url = data.get('url')
+        
+        # 从URL获取文件名
+        filename = os.path.basename(file_url)
+        file_path = os.path.join('static/uploads', filename)
+        
+        # 删除物理文件
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"Deleted file: {file_path}")
+            
+        # 如果文件在bot的参考文件列表中，也要移除
+        if file_path in bot.mem.system_files:
+            bot.mem.system_files.remove(file_path)
+            print(f"Removed from bot's reference files: {file_path}")
+            
+        return jsonify({'success': True})
     except Exception as e:
+        print(f"Error deleting file {file_path}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update-reference-files', methods=['POST'])
