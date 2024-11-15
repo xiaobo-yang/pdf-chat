@@ -169,7 +169,7 @@ function handleChat() {
 }
 
 // 添加消息到聊天框
-function addMessage(sender, text) {
+function addMessage(sender, text, skipHistory = false) {
     const chatMessages = document.getElementById('chat-messages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${sender}`;
@@ -177,11 +177,13 @@ function addMessage(sender, text) {
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     
-    // 保存到历史记录
-    if (!chatHistories[currentChatId]) {
-        chatHistories[currentChatId] = [];
+    // 只有在不是加载历史记录时才保存到历史记录
+    if (!skipHistory) {
+        if (!chatHistories[currentChatId]) {
+            chatHistories[currentChatId] = [];
+        }
+        chatHistories[currentChatId].push({ role: sender, content: text });
     }
-    chatHistories[currentChatId].push({ role: sender, content: text });
 }
 
 // 发送聊天消息
@@ -190,6 +192,9 @@ async function sendMessage() {
     const text = input.value.trim();
     
     if (text) {
+        // 立即清空输入框
+        input.value = '';
+        
         addMessage('user', text);
         try {
             const response = await fetch('/api/chat', {
@@ -205,7 +210,6 @@ async function sendMessage() {
         } catch (error) {
             addMessage('system', '消息发送失败');
         }
-        input.value = '';
     }
 }
 
@@ -540,6 +544,17 @@ async function newChat() {
     
     // 保存当前对话到历史记录
     addChatToHistory(currentChatId);
+    
+    // 清除所有历史项的激活状态
+    document.querySelectorAll('.history-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 激活新创建的对话项
+    const newHistoryItem = document.querySelector(`.history-item[data-chat-id="${currentChatId}"]`);
+    if (newHistoryItem) {
+        newHistoryItem.classList.add('active');
+    }
 }
 
 // 添加对话到历史记录列表
@@ -552,15 +567,44 @@ function addChatToHistory(chatId) {
     const date = new Date();
     historyItem.innerHTML = `
         <i class="fas fa-comments"></i>
-        <span>对话 ${date.toLocaleString()}</span>
+        <span class="chat-name">对话 ${date.toLocaleString()}</span>
+        <i class="fas fa-pencil-alt edit-history"></i>
         <i class="fas fa-times delete-history"></i>
     `;
     
     // 点击切换对话
     historyItem.addEventListener('click', (e) => {
-        if (!e.target.matches('.delete-history')) {
+        if (!e.target.matches('.delete-history, .edit-history')) {
             switchChat(chatId);
         }
+    });
+    
+    // 编辑对话名称
+    const editBtn = historyItem.querySelector('.edit-history');
+    editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const nameSpan = historyItem.querySelector('.chat-name');
+        const currentName = nameSpan.textContent;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.className = 'edit-name-input';
+        
+        nameSpan.replaceWith(input);
+        input.focus();
+        
+        input.addEventListener('blur', () => {
+            const newName = input.value.trim() || currentName;
+            nameSpan.textContent = newName;
+            input.replaceWith(nameSpan);
+            saveChatHistories();  // 保存更改
+        });
+        
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                input.blur();
+            }
+        });
     });
     
     // 删除对话
@@ -590,24 +634,52 @@ function switchChat(chatId) {
     chatMessages.innerHTML = '';
     if (chatHistories[chatId]) {
         chatHistories[chatId].forEach(msg => {
-            addMessage(msg.role, msg.content);
+            addMessage(msg.role, msg.content, true);  // 添加 skipHistory 参数
         });
     }
 }
 
-// 删除对话
+// 修改删除对话函数
 function deleteChat(chatId) {
     // 从DOM中移除
     const historyItem = document.querySelector(`.history-item[data-chat-id="${chatId}"]`);
-    if (historyItem) {
+    if (!historyItem) return;
+    
+    // 获取历史记录列表
+    const historyList = document.querySelector('.history-list');
+    const totalChats = historyList.children.length;
+    
+    // 判断是否是当前选中的对话
+    const isCurrentChat = chatId === currentChatId;
+    
+    // 如果是当前对话，需要切换到其他对话
+    if (isCurrentChat) {
+        // 获取要删除的元素的前一个兄弟元素（如果存在）
+        const prevItem = historyItem.previousElementSibling;
+        // 如果没有前一个，就获取后一个
+        const nextItem = historyItem.nextElementSibling;
+        
+        // 删除元素
         historyItem.remove();
-    }
-    
-    // 从存储中删除
-    delete chatHistories[chatId];
-    
-    // 如果删除的是当前对话，创建新对话
-    if (chatId === currentChatId) {
-        newChat();
+        
+        // 从存储中删除
+        delete chatHistories[chatId];
+        
+        // 如果删除后还有其他对话
+        if (totalChats > 1) {
+            // 优先切换到前一个对话，如果没有就切换到后一个
+            if (prevItem) {
+                switchChat(prevItem.dataset.chatId);
+            } else if (nextItem) {
+                switchChat(nextItem.dataset.chatId);
+            }
+        } else {
+            // 如果这是最后一个对话，创建新对话
+            newChat();
+        }
+    } else {
+        // 如果不是当前对话，直接删除即可
+        historyItem.remove();
+        delete chatHistories[chatId];
     }
 }
