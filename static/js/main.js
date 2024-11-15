@@ -242,8 +242,21 @@ function initializeSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const toggleBtn = document.querySelector('.sidebar-toggle');
     
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止事件冒泡
         sidebar.classList.toggle('collapsed');
+    });
+    
+    // 点击 sidebar 内部时阻止事件冒泡
+    sidebar.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    // 点击其他区域时折叠侧边栏
+    document.addEventListener('click', () => {
+        if (!sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+        }
     });
     
     // 默认折叠侧边栏
@@ -534,8 +547,21 @@ function initializeHistorySidebar() {
     const sidebar = document.querySelector('.history-sidebar');
     const toggleBtn = document.querySelector('.history-toggle');
     
-    toggleBtn.addEventListener('click', () => {
+    toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation(); // 防止事件冒泡
         sidebar.classList.toggle('collapsed');
+    });
+    
+    // 点击 sidebar 内部时阻止事件冒泡
+    sidebar.addEventListener('click', (e) => {
+        e.stopPropagation();
+    });
+    
+    // 点击其他区域时折叠侧边栏
+    document.addEventListener('click', () => {
+        if (!sidebar.classList.contains('collapsed')) {
+            sidebar.classList.add('collapsed');
+        }
     });
     
     // 默认折叠历史记录栏
