@@ -474,6 +474,9 @@ function initializePdfControls() {
         <button onclick="zoomIn()"><i class="fas fa-search-plus"></i> 放大</button>
         <button onclick="zoomOut()"><i class="fas fa-search-minus"></i> 缩小</button>
         <button onclick="resetZoom()"><i class="fas fa-undo"></i> 重置</button>
+        <button onclick="toggleFullscreen()" id="fullscreen-btn">
+            <i class="fas fa-expand"></i> 全屏
+        </button>
     `;
     document.querySelector('.pdf-viewer').appendChild(controls);
 }
@@ -495,6 +498,144 @@ function zoomOut() {
 function resetZoom() {
     currentScale = 1.75;
     reloadPDF();
+}
+
+// 添加全屏相关函数
+function toggleFullscreen() {
+    const chatContainer = document.querySelector('.chat-container');
+    const pdfViewer = document.querySelector('.pdf-viewer');
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    
+    if (!chatContainer.classList.contains('floating')) {
+        // 进入全屏模式
+        pdfViewer.classList.add('fullscreen');
+        chatContainer.classList.add('floating');
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> 退出全屏';
+        initializeDraggableChat();
+    } else {
+        // 退出全屏模式
+        pdfViewer.classList.remove('fullscreen');
+        chatContainer.classList.remove('floating');
+        chatContainer.classList.remove('collapsed');
+        fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> 全屏';
+        // 重置聊天框位置
+        chatContainer.style.transform = 'none';
+        // 移除拖动事件监听器
+        removeDraggableChat();
+    }
+}
+
+// 添加移除拖动功能的函数
+function removeDraggableChat() {
+    const chatContainer = document.querySelector('.chat-container');
+    const chatHeader = chatContainer.querySelector('.chat-header');
+    
+    if (chatHeader) {
+        // 移除事件监听器
+        const listeners = chatContainer.dragListeners;
+        if (listeners) {
+            chatHeader.removeEventListener('mousedown', listeners.dragStart);
+            document.removeEventListener('mousemove', listeners.drag);
+            document.removeEventListener('mouseup', listeners.dragEnd);
+        }
+        // 移除头部
+        chatHeader.remove();
+    }
+}
+
+// 初始化可拖动聊天框
+function initializeDraggableChat() {
+    const chatContainer = document.querySelector('.chat-container');
+    const chatHeader = document.createElement('div');
+    chatHeader.className = 'chat-header';
+    chatHeader.innerHTML = `
+        <div class="chat-title">AI助手</div>
+        <div class="chat-controls">
+            <button class="minimize-btn"><i class="fas fa-minus"></i></button>
+            <button class="restore-btn" style="display:none;"><i class="fas fa-plus"></i></button>
+        </div>
+    `;
+    
+    if (!chatContainer.querySelector('.chat-header')) {
+        chatContainer.insertBefore(chatHeader, chatContainer.firstChild);
+    }
+
+    let isDragging = false;
+    let currentX = 0;
+    let currentY = 0;
+    let initialX;
+    let initialY;
+
+    function dragStart(e) {
+        if (e.target.closest('.chat-header') && !e.target.closest('button')) {
+            isDragging = true;
+            const rect = chatContainer.getBoundingClientRect();
+            initialX = e.clientX - rect.left;
+            initialY = e.clientY - rect.top;
+        }
+    }
+
+    function drag(e) {
+        if (isDragging) {
+            e.preventDefault();
+            
+            // 计算新位置
+            let newX = e.clientX - initialX;
+            let newY = e.clientY - initialY;
+            
+            // 获取窗口尺寸和聊天框尺寸
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const boxWidth = chatContainer.offsetWidth;
+            const boxHeight = chatContainer.offsetHeight;
+            
+            // 限制范围
+            newX = Math.max(0, Math.min(newX, windowWidth - boxWidth));
+            newY = Math.max(0, Math.min(newY, windowHeight - boxHeight));
+            
+            chatContainer.style.left = `${newX}px`;
+            chatContainer.style.top = `${newY}px`;
+            chatContainer.style.right = 'auto';  // 清除right属性
+        }
+    }
+
+    function dragEnd() {
+        isDragging = false;
+    }
+
+    // 最小化按钮事件
+    chatContainer.querySelector('.minimize-btn').addEventListener('click', () => {
+        chatContainer.classList.add('collapsed');
+        chatContainer.querySelector('.minimize-btn').style.display = 'none';
+        chatContainer.querySelector('.restore-btn').style.display = 'flex';
+    });
+
+    // 还原按钮事件
+    chatContainer.querySelector('.restore-btn').addEventListener('click', () => {
+        chatContainer.classList.remove('collapsed');
+        chatContainer.querySelector('.minimize-btn').style.display = 'flex';
+        chatContainer.querySelector('.restore-btn').style.display = 'none';
+    });
+
+    // 允许折叠状态下点击整个图标来还原
+    chatContainer.addEventListener('click', (e) => {
+        if (chatContainer.classList.contains('collapsed') && 
+            !e.target.closest('.chat-controls')) {
+            chatContainer.classList.remove('collapsed');
+            chatContainer.querySelector('.minimize-btn').style.display = 'flex';
+            chatContainer.querySelector('.restore-btn').style.display = 'none';
+        }
+    });
+
+    chatHeader.addEventListener('mousedown', dragStart);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', dragEnd);
+
+    chatContainer.dragListeners = {
+        dragStart,
+        drag,
+        dragEnd
+    };
 }
 
 async function reloadPDF() {
