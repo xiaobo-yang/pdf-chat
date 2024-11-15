@@ -308,6 +308,8 @@ function addFileToList(fileInfo) {
     const fileList = document.querySelector('.file-list');
     const fileItem = document.createElement('div');
     fileItem.className = 'file-item';
+    // 添加data-url属性到fileItem
+    fileItem.dataset.url = fileInfo.url;
     fileItem.innerHTML = `
         <label class="checkbox-container">
             <input type="checkbox" class="file-checkbox" data-url="${fileInfo.url}">
@@ -316,7 +318,7 @@ function addFileToList(fileInfo) {
         <i class="fas fa-file-pdf"></i>
         <span>${fileInfo.name}</span>
         <span class="file-size">${formatFileSize(fileInfo.size)}</span>
-        <i class="fas fa-times delete-file" onclick="event.stopPropagation(); deleteFile('${fileInfo.url}')"></i>
+        <i class="fas fa-times delete-file"></i>
     `;
     
     // 修改点击事件
@@ -328,6 +330,13 @@ function addFileToList(fileInfo) {
             fileItem.classList.add('active');
             showFile(fileInfo.url);
         }
+    });
+
+    // 添加删除按钮事件
+    const deleteBtn = fileItem.querySelector('.delete-file');
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteFile(fileInfo.url);
     });
 
     // 添加复选框事件
