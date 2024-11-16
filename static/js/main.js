@@ -510,32 +510,62 @@ function toggleFullscreen() {
         // 进入全屏模式
         pdfViewer.classList.add('fullscreen');
         chatContainer.classList.add('floating');
-        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> 退出全屏';
+        fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i> 还原';
         initializeDraggableChat();
+        restoreChatWindowSize();  // 添加这行：恢复上次保存的窗口状态
     } else {
+        // 退出全屏模式前保存当前状态
+        saveChatWindowSize();     // 添加这行：保存当前窗口状态
+        
         // 退出全屏模式
         pdfViewer.classList.remove('fullscreen');
         chatContainer.classList.remove('floating');
         chatContainer.classList.remove('collapsed');
         fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i> 全屏';
+        
         // 重置聊天框位置
-        chatContainer.style.transform = 'none';
-        // 移除拖动事件监听器
-        removeDraggableChat();
+        // chatContainer.style.transform = 'none';
+        // 重置复原后聊天框尺寸
+        chatContainer.style.width = '';
+        chatContainer.style.height = '';
+        chatContainer.style.left = '';
+        chatContainer.style.top = '';
     }
 }
 
-// 添加移除拖动功能的函数, 清理旧的浮动框位置的内存
-function removeDraggableChat() {
+// 保存和恢复窗口大小的函数
+function saveChatWindowSize() {
     const chatContainer = document.querySelector('.chat-container');
-    const chatHeader = chatContainer.querySelector('.chat-header');
-    
-    if (chatContainer.dragListeners) {
-        chatHeader.removeEventListener('mousedown', chatContainer.dragListeners.dragStart);
-        document.removeEventListener('mousemove', chatContainer.dragListeners.drag);
-        document.removeEventListener('mouseup', chatContainer.dragListeners.dragEnd);
-        chatContainer.removeEventListener('mouseup', chatContainer.dragListeners.saveChatWindowSize);
-        delete chatContainer.dragListeners;
+    // 只在浮动状态下保存
+    if (chatContainer.classList.contains('floating')) {
+        const state = {
+            width: chatContainer.style.width,
+            height: chatContainer.style.height,
+            left: chatContainer.style.left,
+            top: chatContainer.style.top
+        };
+        localStorage.setItem('chatWindowState', JSON.stringify(state));
+    }
+}
+
+// 修改恢复窗口大小的函数
+function restoreChatWindowSize() {
+    const chatContainer = document.querySelector('.chat-container');
+    // 只在浮动状态下恢复
+    if (chatContainer.classList.contains('floating')) {
+        try {
+            const savedState = localStorage.getItem('chatWindowState');
+            if (savedState) {
+                const state = JSON.parse(savedState);
+                // 应用保存的状态
+                chatContainer.style.width = state.width || '400px';
+                chatContainer.style.height = state.height || '600px';
+                chatContainer.style.left = state.left || '20px';
+                chatContainer.style.top = state.top || '20px';
+            }
+        } catch (error) {
+            console.error('恢复窗口状态失败:', error);
+        }
     }
 }
 
@@ -614,19 +644,6 @@ function initializeDraggableChat() {
             chatContainer.style.transition = 'all 0.2s ease';
             chatContainer.style.willChange = 'auto';
         }
-    }
-
-    // 保存和恢复窗口大小的函数
-    function saveChatWindowSize() {
-        localStorage.setItem('chatWindowWidth', chatContainer.style.width);
-        localStorage.setItem('chatWindowHeight', chatContainer.style.height);
-    }
-
-    function restoreChatWindowSize() {
-        const savedWidth = localStorage.getItem('chatWindowWidth');
-        const savedHeight = localStorage.getItem('chatWindowHeight');
-        if (savedWidth) chatContainer.style.width = savedWidth;
-        if (savedHeight) chatContainer.style.height = savedHeight;
     }
 
     // 最小化按钮事件
