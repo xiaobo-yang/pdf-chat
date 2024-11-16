@@ -41,6 +41,18 @@ body, html {
     background: #f0f0f0;
 }
 
+/* 消息区域样式 */
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 基础聊天容器样式 */
 .chat-container {
     width: 300px;
     min-width: 300px;
@@ -53,88 +65,8 @@ body, html {
     max-width: 500px;
 }
 
-/* 浮动聊天框样式 */
-.chat-container.floating {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 300px;
-    height: 400px;
-    z-index: 100;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: all 0.3s ease;
-    padding: 0;
-}
-
-/* 修改折叠状态的样式 */
-.chat-container.floating.collapsed {
-    width: 40px;  /* 减小尺寸 */
-    height: 40px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #007bff, #0056b3);  /* 添加渐变效果 */
-    box-shadow: 
-        0 4px 12px rgba(0,0,0,0.2),
-        inset 2px 2px 4px rgba(255,255,255,0.3),  /* 内部高光 */
-        inset -2px -2px 4px rgba(0,0,0,0.2);  /* 内部阴影 */
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid rgba(255,255,255,0.1);  /* 添加细边框 */
-}
-
-/* 折叠状态下的按钮样式 */
-.chat-container.floating.collapsed .chat-header {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    padding: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.chat-container.floating.collapsed .chat-controls {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.chat-container.floating.collapsed .minimize-btn {
-    display: none;  /* 隐藏最小化按钮 */
-}
-
-.chat-container.floating.collapsed .restore-btn {
-    display: flex;  /* 显示还原按钮 */
-    color: white;
-    font-size: 16px;
-    padding: 0;
-    background: none;
-    box-shadow: none;
-}
-
-.chat-container.floating.collapsed .restore-btn:hover {
-    transform: scale(1.1);
-}
-
+/* 展开状态的聊天框样式 */
 .chat-container.floating .chat-header {
-    display: flex;
-}
-
-.chat-container.floating #chat-messages {
-    margin: 10px;
-    height: calc(100% - 120px);  /* 调整高度以适应新的布局 */
-}
-
-.chat-container.floating .input-area {
-    margin: 10px;
-    padding-bottom: 10px;
-}
-
-.chat-header {
     padding: 10px 15px;
     background: #007bff;
     color: white;
@@ -146,6 +78,17 @@ body, html {
     align-items: center;
 }
 
+.chat-container.floating #chat-messages {
+    margin: 10px;
+    height: calc(100% - 120px);
+}
+
+.chat-container.floating .input-area {
+    margin: 10px;
+    padding-bottom: 10px;
+}
+
+/* 控制按钮样式 */
 .chat-controls {
     display: flex;
     gap: 5px;
@@ -164,57 +107,91 @@ body, html {
     background: rgba(255,255,255,0.2);
 }
 
-.chat-container.collapsed .chat-controls,
-.chat-container.collapsed #chat-messages,
-.chat-container.collapsed .input-area {
-    display: none;
+/* 动画效果 */
+.chat-container {
+    transition: all 0.2s ease;
 }
 
-.chat-container.collapsed .chat-header {
-    border-radius: 25px;
+/* 浮动聊天框基础样式 */
+.chat-container.floating {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    height: 400px;
+    z-index: 100;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
     padding: 0;
-    width: 50px;
-    height: 50px;
+}
+
+/* 浮动聊天框折叠状态样式 */
+.chat-container.floating.collapsed {
+    width: 48px;  /* 固定宽度 */
+    height: 48px; /* 固定高度 - 保持相等实现正圆形 */
+    border-radius: 50%;  /* 圆形边框 */
+    background: linear-gradient(145deg, #007bff, #0056b3);  /* 渐变背景 */
+    box-shadow: 
+        0 4px 12px rgba(0,0,0,0.2),
+        inset 2px 2px 4px rgba(255,255,255,0.3),
+        inset -2px -2px 4px rgba(0,0,0,0.2);
+    cursor: move;  /* 指示可拖动 */
+    overflow: hidden;
+    padding: 0;
+    transform-origin: center;
+    min-width: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
+    max-width: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
+}
+
+/* 浮动聊天框折叠状态下的头部样式 */
+.chat-container.floating.collapsed .chat-header {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
     justify-content: center;
 }
 
-.chat-container.collapsed .chat-title {
+/* 折叠状态下隐藏不需要的元素 */
+.chat-container.floating.collapsed .chat-title,
+.chat-container.floating.collapsed #chat-messages,
+.chat-container.floating.collapsed .input-area {
     display: none;
 }
 
-.chat-container.floating .chat-title {
-    font-weight: bold;
+/* 添加可点击区域样式 */
+.chat-container.floating.collapsed .restore-btn {
+    width: 24px;  /* 较小的点击区域 */
+    height: 24px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
 }
 
-/* 动画效果 */
-.chat-container {
-    transition: all 0.3s ease;
+/* 添加悬停效果 */
+.chat-container.floating.collapsed .restore-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
-.chat-container.floating {
-    transform-origin: top right;
-    animation: floatIn 0.3s ease;
-}
-
-@keyframes floatIn {
-    from {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-#chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    background: white;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* 3. 隐藏最小化按钮 */
+.chat-container.floating.collapsed .minimize-btn {
+    display: none;
 }
 
 .input-area {

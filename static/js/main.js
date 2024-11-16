@@ -567,40 +567,57 @@ function initializeDraggableChat() {
     let initialY;
 
     function dragStart(e) {
+        // 确保不是在还原按钮上开始拖动
+        if (e.target.closest('.restore-btn')) {
+            isDragging = false;
+            return;
+        }
+
         if (e.target.closest('.chat-header') && !e.target.closest('button')) {
             isDragging = true;
             const rect = chatContainer.getBoundingClientRect();
             initialX = e.clientX - rect.left;
             initialY = e.clientY - rect.top;
+            
+            // 添加拖动时的样式
+            chatContainer.style.transition = 'none';  // 拖动时禁用过渡效果
+            chatContainer.style.willChange = 'transform';  // 优化性能
         }
     }
 
     function drag(e) {
         if (isDragging) {
             e.preventDefault();
-            
-            // 计算新位置
-            let newX = e.clientX - initialX;
-            let newY = e.clientY - initialY;
-            
-            // 获取窗口尺寸和聊天框尺寸
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            const boxWidth = chatContainer.offsetWidth;
-            const boxHeight = chatContainer.offsetHeight;
-            
-            // 限制范围
-            newX = Math.max(0, Math.min(newX, windowWidth - boxWidth));
-            newY = Math.max(0, Math.min(newY, windowHeight - boxHeight));
-            
-            chatContainer.style.left = `${newX}px`;
-            chatContainer.style.top = `${newY}px`;
-            chatContainer.style.right = 'auto';  // 清除right属性
+            requestAnimationFrame(() => {  // 使用requestAnimationFrame优化性能
+                // 计算新位置
+                let newX = e.clientX - initialX;
+                let newY = e.clientY - initialY;
+                
+                // 获取窗口尺寸和聊天框尺寸
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                const boxWidth = chatContainer.offsetWidth;
+                const boxHeight = chatContainer.offsetHeight;
+                
+                // 限制范围
+                newX = Math.max(0, Math.min(newX, windowWidth - boxWidth));
+                newY = Math.max(0, Math.min(newY, windowHeight - boxHeight));
+                
+                // 直接设置位置，不使用transform
+                chatContainer.style.left = `${newX}px`;
+                chatContainer.style.top = `${newY}px`;
+                chatContainer.style.right = 'auto';
+            });
         }
     }
 
     function dragEnd() {
-        isDragging = false;
+        if (isDragging) {
+            isDragging = false;
+            // 恢复过渡效果
+            chatContainer.style.transition = 'all 0.2s ease';
+            chatContainer.style.willChange = 'auto';
+        }
     }
 
     // 最小化按钮事件
@@ -611,20 +628,11 @@ function initializeDraggableChat() {
     });
 
     // 还原按钮事件
-    chatContainer.querySelector('.restore-btn').addEventListener('click', () => {
+    chatContainer.querySelector('.restore-btn').addEventListener('click', (e) => {
+        e.stopPropagation();  // 添加这行，防止点击事件传播
         chatContainer.classList.remove('collapsed');
         chatContainer.querySelector('.minimize-btn').style.display = 'flex';
         chatContainer.querySelector('.restore-btn').style.display = 'none';
-    });
-
-    // 允许折叠状态下点击整个图标来还原
-    chatContainer.addEventListener('click', (e) => {
-        if (chatContainer.classList.contains('collapsed') && 
-            !e.target.closest('.chat-controls')) {
-            chatContainer.classList.remove('collapsed');
-            chatContainer.querySelector('.minimize-btn').style.display = 'flex';
-            chatContainer.querySelector('.restore-btn').style.display = 'none';
-        }
     });
 
     chatHeader.addEventListener('mousedown', dragStart);
