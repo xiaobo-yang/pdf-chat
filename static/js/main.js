@@ -205,10 +205,9 @@ async function sendMessage() {
     
     if (text) {
         input.value = '';
-        
         addMessage('user', text);
+        
         try {
-            
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -218,13 +217,63 @@ async function sendMessage() {
                     text: text,
                     session_id: currentChatId,
                     messages: chatHistories[currentChatId].messages,
-                    model: localStorage.getItem('selectedModel') || 'ollama'  // 添加模型选择
+                    model: localStorage.getItem('selectedModel') || 'ollama'
                 })
             });
+
+            // 创建一个新的消息元素用于流式输出
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            document.getElementById('chat-messages').appendChild(messageDiv);
             
-            const data = await response.json();
-            addMessage('system', data.result);
+            // 读取流式响应
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let lastContent = '';
+            
+            while (true) {
+                const {value, done} = await reader.read();
+                if (done) break;
+                
+                const text = decoder.decode(value);
+                const lines = text.split('\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            // 只显示新增的内容
+                            const newContent = data.content;
+                            const addedContent = newContent.slice(lastContent.length);
+                            if (addedContent) {
+                                messageDiv.textContent += addedContent;
+                                lastContent = newContent;
+                                
+                                // 自动滚动到底部
+                                const chatMessages = document.getElementById('chat-messages');
+                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.error('解析响应数据失败:', e);
+                        }
+                    }
+                }
+            }
+            
+            // 将完整响应添加到历史记录
+            if (lastContent && currentChatId) {
+                if (!chatHistories[currentChatId].messages) {
+                    chatHistories[currentChatId].messages = [];
+                }
+                chatHistories[currentChatId].messages.push({
+                    role: 'assistant',
+                    content: lastContent
+                });
+                saveChatHistories();
+            }
+            
         } catch (error) {
+            console.error('发送消息失败:', error);
             addMessage('system', '消息发送失败');
         }
     }

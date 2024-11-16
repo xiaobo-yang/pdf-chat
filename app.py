@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response
 import os
 from werkzeug.utils import secure_filename
 import json
@@ -75,7 +75,7 @@ def get_ai_response(messages, model="ollama"):
 def handle_chat():
     text = request.json.get('text', '')
     messages = request.json.get('messages', [])
-    model = request.json.get('model', 'ollama')  # 获取选择的模型
+    model = request.json.get('model', 'ollama')
     print(f'[DEBUG] chat model used: {model}')
     
     current_messages = messages + [{
@@ -83,8 +83,40 @@ def handle_chat():
         'content': text
     }]
     
-    responses = get_ai_response(current_messages, model)
-    return jsonify({'result': responses[-1]['content']})
+    def generate():
+        if model == "ollama":
+            # Ollama API调用
+            conversation = ""
+            for msg in current_messages:
+                if msg['role'] != 'system':
+                    role = msg['role']
+                    content = msg['content']
+                    conversation += f"{role}: {content}\n"
+            conversation += "assistant: "
+            
+            # 使用流式输出
+            full_response = ""
+            try:
+                for response in ollama_bot.chat("llama3.2", conversation, stream=True):
+                    if 'message' in response:
+                        chunk = response['message'].get('content', '')
+                        if chunk:
+                            full_response += chunk
+                            yield f"data: {json.dumps({'content': full_response})}\n\n"
+            except Exception as e:
+                print(f"Streaming error: {str(e)}")
+                yield f"data: {json.dumps({'content': '发生错误: ' + str(e)})}\n\n"
+        else:
+            # Qwen API调用
+            formatted_messages = []
+            for msg in current_messages:
+                if msg['role'] != 'system':
+                    formatted_messages.append(msg)
+            
+            for response in qwen_bot.run(messages=formatted_messages):
+                yield f"data: {json.dumps({'content': response[-1]['content']})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/api/translate', methods=['POST'])
 def handle_translate():
