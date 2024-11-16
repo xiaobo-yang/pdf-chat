@@ -525,21 +525,17 @@ function toggleFullscreen() {
     }
 }
 
-// 添加移除拖动功能的函数
+// 添加移除拖动功能的函数, 清理旧的浮动框位置的内存
 function removeDraggableChat() {
     const chatContainer = document.querySelector('.chat-container');
     const chatHeader = chatContainer.querySelector('.chat-header');
     
-    if (chatHeader) {
-        // 移除事件监听器
-        const listeners = chatContainer.dragListeners;
-        if (listeners) {
-            chatHeader.removeEventListener('mousedown', listeners.dragStart);
-            document.removeEventListener('mousemove', listeners.drag);
-            document.removeEventListener('mouseup', listeners.dragEnd);
-        }
-        // 移除头部
-        chatHeader.remove();
+    if (chatContainer.dragListeners) {
+        chatHeader.removeEventListener('mousedown', chatContainer.dragListeners.dragStart);
+        document.removeEventListener('mousemove', chatContainer.dragListeners.drag);
+        document.removeEventListener('mouseup', chatContainer.dragListeners.dragEnd);
+        chatContainer.removeEventListener('mouseup', chatContainer.dragListeners.saveChatWindowSize);
+        delete chatContainer.dragListeners;
     }
 }
 
@@ -620,6 +616,19 @@ function initializeDraggableChat() {
         }
     }
 
+    // 保存和恢复窗口大小的函数
+    function saveChatWindowSize() {
+        localStorage.setItem('chatWindowWidth', chatContainer.style.width);
+        localStorage.setItem('chatWindowHeight', chatContainer.style.height);
+    }
+
+    function restoreChatWindowSize() {
+        const savedWidth = localStorage.getItem('chatWindowWidth');
+        const savedHeight = localStorage.getItem('chatWindowHeight');
+        if (savedWidth) chatContainer.style.width = savedWidth;
+        if (savedHeight) chatContainer.style.height = savedHeight;
+    }
+
     // 最小化按钮事件
     chatContainer.querySelector('.minimize-btn').addEventListener('click', () => {
         chatContainer.classList.add('collapsed');
@@ -638,6 +647,12 @@ function initializeDraggableChat() {
     chatHeader.addEventListener('mousedown', dragStart);
     document.addEventListener('mousemove', drag);
     document.addEventListener('mouseup', dragEnd);
+    
+    // 监听窗口大小调整
+    chatContainer.addEventListener('mouseup', saveChatWindowSize);
+
+    // 在初始化时恢复大小
+    document.addEventListener('DOMContentLoaded', restoreChatWindowSize);
 
     chatContainer.dragListeners = {
         dragStart,

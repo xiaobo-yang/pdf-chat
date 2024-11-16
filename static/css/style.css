@@ -78,14 +78,65 @@ body, html {
     align-items: center;
 }
 
+/* 调整消息区域高度，为输入区域留出合适空间 */
 .chat-container.floating #chat-messages {
     margin: 10px;
-    height: calc(100% - 120px);
+    height: calc(100% - 100px);  /* 调整高度计算 */
+    overflow-y: auto;
 }
 
+/* 优化浮动状态下输入框样式 */
+.chat-container.floating #user-input {
+    height: 36px;  /* 减小高度 */
+    padding: 8px 12px;  /* 调整内边距 */
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    flex: 1;
+    font-size: 14px;
+    background: white;
+}
+
+/* 优化输入区域样式 */
 .chat-container.floating .input-area {
-    margin: 10px;
-    padding-bottom: 10px;
+    margin: 8px;  /* 减小外边距 */
+    padding: 6px;  /* 减小内边距 */
+    background: #f8f9fa;  /* 添加背景色 */
+    border-radius: 6px;  /* 圆角 */
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* 调整大小时的视觉反馈，悬停效果 */
+.chat-container.floating:hover {
+    outline: none;  /* 未设置 */
+}
+
+/* 自定义调整大小的手柄样式 */
+.chat-container.floating::-webkit-resizer {
+    border-radius: 0 0 8px 0;  /* 右下角圆角 */
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+}
+
+/* 优化按钮样式 */
+.chat-container.floating .input-area button {
+    height: 36px;  /* 与输入框等高 */
+    padding: 0 12px;  /* 调整内边距 */
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.chat-container.floating .input-area button:hover {
+    background: #0056b3;
 }
 
 /* 控制按钮样式 */
@@ -119,12 +170,16 @@ body, html {
     right: 20px;
     width: 300px;
     height: 400px;
+    min-width: 250px;   /* 添加最小尺寸限制 */
+    min-height: 300px;  /* 添加最小尺寸限制 */
     z-index: 100;
     background: white;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
     padding: 0;
+    resize: both;      /* 允许调整大小 */
+    overflow: auto;    /* 必须设置overflow才能启用resize */
 }
 
 /* 浮动聊天框折叠状态样式 */
