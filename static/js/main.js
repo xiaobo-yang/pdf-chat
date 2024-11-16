@@ -119,7 +119,10 @@ async function handleAnalyze() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: selectedText })
+            body: JSON.stringify({
+                text: selectedText,
+                model: localStorage.getItem('selectedModel') || 'ollama'  // 放在 body 中
+            })
         });
         
         const data = await response.json();
@@ -141,7 +144,10 @@ async function handleTranslate() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: selectedText })
+            body: JSON.stringify({
+                text: selectedText,
+                model: localStorage.getItem('selectedModel') || 'ollama'  // 放在 body 中
+            })
         });
         
         const data = await response.json();
@@ -202,6 +208,7 @@ async function sendMessage() {
         
         addMessage('user', text);
         try {
+            
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: {
@@ -210,7 +217,8 @@ async function sendMessage() {
                 body: JSON.stringify({
                     text: text,
                     session_id: currentChatId,
-                    messages: chatHistories[currentChatId].messages  // 添加完整的历史消息
+                    messages: chatHistories[currentChatId].messages,
+                    model: localStorage.getItem('selectedModel') || 'ollama'  // 添加模型选择
                 })
             });
             
@@ -241,6 +249,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // 加载PDF文件列表
     await loadPdfFiles();
+    addModelSelector();
 });
 
 function initializeSidebar() {
@@ -396,8 +405,9 @@ function addFileToList(fileInfo) {
                 },
                 body: JSON.stringify({
                     url: this.dataset.url,
-                    checked: this.checked
-                })
+                    checked: this.checked,
+                    model: localStorage.getItem('selectedModel') || 'ollama'
+                }),
             });
             if (!response.ok) {
                 throw new Error('Failed to update reference files');
@@ -418,7 +428,10 @@ async function deleteFile(url) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ url: url })
+            body: JSON.stringify({
+                url: url,
+                model: localStorage.getItem('selectedModel') || 'ollama'  // 放在 body 中
+            })
         });
 
         if (response.ok) {
@@ -1013,5 +1026,61 @@ async function loadPdfFiles() {
         }
     } catch (error) {
         console.error('加载PDF文件列表失败:', error);
+    }
+}
+
+// 添加模型选择器HTML
+function addModelSelector() {
+    const inputContainer = document.querySelector('.input-area');
+    const modelSelector = document.createElement('div');
+    modelSelector.className = 'model-selector';
+    modelSelector.innerHTML = `
+        <div class="current-model">
+            <span class="model-name">当前模型: Ollama-llama3.2</span>
+            <i class="fas fa-chevron-down"></i>
+        </div>
+        <div class="model-options">
+            <div class="model-option" data-model="ollama">Ollama-3.2</div>
+            <div class="model-option" data-model="qwen">通义千问</div>
+        </div>
+    `;
+    
+    // 将选择器插入到输入框之前
+    const userInput = inputContainer.querySelector('#user-input');
+    inputContainer.insertBefore(modelSelector, userInput);
+    
+    // 添加点击事件
+    const currentModel = modelSelector.querySelector('.current-model');
+    const modelOptions = modelSelector.querySelector('.model-options');
+    
+    currentModel.addEventListener('click', (e) => {
+        e.stopPropagation();  // 防止事件冒泡
+        modelOptions.classList.toggle('show');
+    });
+    
+    // 选择模型
+    modelOptions.addEventListener('click', (e) => {
+        if (e.target.classList.contains('model-option')) {
+            const selectedModel = e.target.dataset.model;
+            const modelName = e.target.textContent;
+            currentModel.querySelector('.model-name').textContent = `当前模型: ${modelName}`;
+            modelOptions.classList.remove('show');
+            // 保存选择
+            localStorage.setItem('selectedModel', selectedModel);
+        }
+    });
+    
+    // 点击其他地方关闭选项
+    document.addEventListener('click', () => {
+        modelOptions.classList.remove('show');
+    });
+    
+    // 初始化选中的模型
+    const savedModel = localStorage.getItem('selectedModel');
+    if (savedModel) {
+        const modelOption = modelOptions.querySelector(`[data-model="${savedModel}"]`);
+        if (modelOption) {
+            currentModel.querySelector('.model-name').textContent = `当前模型: ${modelOption.textContent}`;
+        }
     }
 }
