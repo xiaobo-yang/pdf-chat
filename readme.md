@@ -22,6 +22,7 @@ project/
 ├── templates/
 │   └── index.html         # 主页面模板
 └── app.py                 # Flask后端应用
+└── utils.py               # 一些工具
 ```
 
 ### 支持的AI模型
