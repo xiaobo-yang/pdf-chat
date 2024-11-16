@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_from_directory
 import os
 from werkzeug.utils import secure_filename
 import json
-from ollama_api_demo import OllamaClient
+from utils import OllamaClient
 from qwen_agent.agents import Assistant
 
 app = Flask(__name__)

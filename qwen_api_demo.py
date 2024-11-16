@@ -64,14 +64,17 @@ bot = Assistant(llm=llm_cfg,
 # Step 4: Run the agent as a chatbot.
 messages = []  # This stores the chat history.
 while True:
-    # For example, enter the query "draw a dog and rotate it 90 degrees".
-    query = input('user query: ')
-    # Append the user query to the chat history.
+    query = input('用户输入: ')
     messages.append({'role': 'user', 'content': query})
-    response = []
+    
+    print('助手回复:', end=' ', flush=True)
+    last_response = ''
     for response in bot.run(messages=messages):
-        # Streaming output.
-        print('bot response:')
-        pprint.pprint(response, indent=2)
-    # Append the bot responses to the chat history.
+        # 获取最新的回复内容
+        current_response = response[-1]['content']
+        # 只打印新增的内容
+        new_text = current_response[len(last_response):]
+        print(new_text, end='', flush=True)
+        last_response = current_response
+    print()  # 换行
     messages.extend(response)
