@@ -2,6 +2,11 @@
 
 一个集成了PDF阅读、文本分析和AI对话功能的Web应用。
 
+## to do
+- [ ] 重新整理代码库，删掉冗余，合并同类项
+- [ ] ollama实现rag
+
+
 ## 项目结构
 
 ```
@@ -94,11 +99,13 @@ project/
     ```bash
     pip install flask
     ```
+   - [ ] 补充qwen和ollama的依赖安装
 
 2. 运行应用
     ```bash
     DASHSCOPE_API_KEY=<api_key> python app.py
     ```
+    - [ ] ollama还要在本地启动服务端
 
 3. 访问应用
     打开浏览器访问 http://localhost:5000
