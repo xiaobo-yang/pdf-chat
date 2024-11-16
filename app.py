@@ -43,8 +43,16 @@ def allowed_file(filename):
 
 def get_ai_response(messages):
     """获取AI回复"""
+    # 确保消息列表的格式正确
+    formatted_messages = []
+    
+    # 添加历史消息
+    for msg in messages:
+        if msg['role'] != 'system':  # 跳过任何额外的系统消息
+            formatted_messages.append(msg)
+    
     responses = []
-    for response in bot.run(messages=messages):
+    for response in bot.run(messages=formatted_messages):
         responses = response
     return responses
 
@@ -56,22 +64,16 @@ def index():
 def handle_chat():
     text = request.json.get('text', '')
     session_id = request.json.get('session_id', 'default')
+    messages = request.json.get('messages', [])  # 从请求中获取完整的历史消息
     
-    # 获取或创建会话历史
-    if session_id not in chat_histories:
-        chat_histories[session_id] = []
-    
-    # 添加用户消息
-    chat_histories[session_id].append({
+    # 添加新的用户消息
+    current_messages = messages + [{
         'role': 'user',
         'content': text
-    })
+    }]
     
     # 获取AI回复
-    responses = get_ai_response(chat_histories[session_id])
-    
-    # 更新对话历史
-    chat_histories[session_id].extend(responses)
+    responses = get_ai_response(current_messages)
     
     # 返回最后一条回复
     return jsonify({'result': responses[-1]['content']})
@@ -79,37 +81,19 @@ def handle_chat():
 @app.route('/api/translate', methods=['POST'])
 def handle_translate():
     text = request.json.get('text', '')
-    session_id = request.json.get('session_id', 'default')
-    
-    if session_id not in chat_histories:
-        chat_histories[session_id] = []
-    
-    # 构建翻译提示
     prompt = f"请将以下文本翻译成中文：\n{text}"
     
-    # 添加用户消息
-    chat_histories[session_id].append({
+    messages = [{
         'role': 'user',
         'content': prompt
-    })
+    }]
     
-    # 获取AI回复
-    responses = get_ai_response(chat_histories[session_id])
-    
-    # 更新对话历史
-    chat_histories[session_id].extend(responses)
-    
+    responses = get_ai_response(messages)
     return jsonify({'result': responses[-1]['content']})
 
 @app.route('/api/analyze', methods=['POST'])
 def handle_analyze():
     text = request.json.get('text', '')
-    session_id = request.json.get('session_id', 'default')
-    
-    if session_id not in chat_histories:
-        chat_histories[session_id] = []
-    
-    # 构建解析提示
     prompt = f"""请解析以下文本的含义，并从以下几个方面进行分析：
 1. 主要内容
 2. 关键概念
@@ -118,18 +102,12 @@ def handle_analyze():
 
 文本：{text}"""
     
-    # 添加用户消息
-    chat_histories[session_id].append({
+    messages = [{
         'role': 'user',
         'content': prompt
-    })
+    }]
     
-    # 获取AI回复
-    responses = get_ai_response(chat_histories[session_id])
-    
-    # 更新对话历史
-    chat_histories[session_id].extend(responses)
-    
+    responses = get_ai_response(messages)
     return jsonify({'result': responses[-1]['content']})
 
 @app.route('/upload', methods=['POST'])

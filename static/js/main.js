@@ -182,8 +182,10 @@ function addMessage(sender, text, skipHistory = false) {
         if (!chatHistories[currentChatId].messages) {
             chatHistories[currentChatId].messages = [];
         }
+        // 修改这里：将 'system' 改为 'assistant'
+        const role = sender === 'user' ? 'user' : 'assistant';
         chatHistories[currentChatId].messages.push({
-            role: sender,
+            role: role,
             content: text
         });
         saveChatHistories();
@@ -196,7 +198,6 @@ async function sendMessage() {
     const text = input.value.trim();
     
     if (text) {
-        // 立即清空输入框
         input.value = '';
         
         addMessage('user', text);
@@ -206,7 +207,11 @@ async function sendMessage() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ text: text })
+                body: JSON.stringify({
+                    text: text,
+                    session_id: currentChatId,
+                    messages: chatHistories[currentChatId].messages  // 添加完整的历史消息
+                })
             });
             
             const data = await response.json();
