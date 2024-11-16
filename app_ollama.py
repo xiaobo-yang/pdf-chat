@@ -32,9 +32,10 @@ def get_ai_response(messages):
     # 将历史消息转换为单个提示文本
     conversation = ""
     for msg in messages:
-        role = msg['role']
-        content = msg['content']
-        conversation += f"{role}: {content}\n"
+        if msg['role'] != 'system':
+            role = msg['role']
+            content = msg['content']
+            conversation += f"{role}: {content}\n"
     
     # 添加最后的assistant提示
     conversation += "assistant: "
@@ -49,7 +50,6 @@ def get_ai_response(messages):
 @app.route('/api/chat', methods=['POST'])
 def handle_chat():
     text = request.json.get('text', '')
-    session_id = request.json.get('session_id', 'default')
     messages = request.json.get('messages', [])  # 从请求中获取完整的历史消息
     
     # 添加新的用户消息
@@ -70,7 +70,7 @@ def handle_translate():
     prompt = f"请将以下文本翻译成中文：\n{text}"
     
     # 使用chat方法，与普通对话保持一致
-    response = bot.chat("llama2", prompt)
+    response = bot.chat("llama3.2", prompt)
     return jsonify({'result': response['message']['content']})
 
 @app.route('/api/analyze', methods=['POST'])
@@ -85,7 +85,7 @@ def handle_analyze():
 文本：{text}"""
     
     # 使用chat方法，与普通对话保持一致
-    response = bot.chat("llama2", prompt)
+    response = bot.chat("llama3.2", prompt)
     return jsonify({'result': response['message']['content']})
 
 @app.route('/upload', methods=['POST'])

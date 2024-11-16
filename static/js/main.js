@@ -112,7 +112,7 @@ async function handleAnalyze() {
     if (!selectedText) return;
     
     // 自动将选中文本发送到对话框
-    addMessage('user', selectedText);
+    addMessage('user', `请将解析以下文本：: ${selectedText}`);
     try {
         const response = await fetch('/api/analyze', {
             method: 'POST',
@@ -134,7 +134,7 @@ async function handleAnalyze() {
 async function handleTranslate() {
     if (!selectedText) return;
     
-    addMessage('user', `翻译: ${selectedText}`);
+    addMessage('user', `请将以下文本翻译成中文：: ${selectedText}`);
     try {
         const response = await fetch('/api/translate', {
             method: 'POST',
