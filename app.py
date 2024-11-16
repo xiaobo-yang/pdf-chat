@@ -50,7 +50,7 @@ def get_ai_response(messages):
     for msg in messages:
         if msg['role'] != 'system':  # 跳过任何额外的系统消息
             formatted_messages.append(msg)
-    
+    print(f'[DEBUG] messages sent to AI: {formatted_messages}')
     responses = []
     for response in bot.run(messages=formatted_messages):
         responses = response
