@@ -111,23 +111,78 @@ document.addEventListener('mousedown', function(e) {
 async function handleAnalyze() {
     if (!selectedText) return;
     
-    // 自动将选中文本发送到对话框
-    addMessage('user', `请将解析以下文本：: ${selectedText}`);
+    const prompt = `请解析以下文本的含义，并从以下几个方面进行分析：
+1. 主要内容
+2. 关键概念
+3. 重要观点
+4. 相关背景（如果有）
+
+文本：${selectedText}`;
+    
+    // 使用通用的聊天接口
+    addMessage('user', prompt);
     try {
-        const response = await fetch('/api/analyze', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                text: selectedText,
-                model: localStorage.getItem('selectedModel') || 'ollama'  // 放在 body 中
+                text: prompt,
+                session_id: currentChatId,
+                messages: chatHistories[currentChatId].messages,
+                model: localStorage.getItem('selectedModel') || 'ollama'
             })
         });
+
+        // 创建一个新的消息元素用于流式输出
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        document.getElementById('chat-messages').appendChild(messageDiv);
         
-        const data = await response.json();
-        addMessage('system', data.result);
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let lastContent = '';
+        
+        while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+            
+            const text = decoder.decode(value);
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        const newContent = data.content;
+                        const addedContent = newContent.slice(lastContent.length);
+                        if (addedContent) {
+                            messageDiv.textContent += addedContent;
+                            lastContent = newContent;
+                            
+                            // 自动滚动到底部
+                            const chatMessages = document.getElementById('chat-messages');
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    } catch (e) {
+                        console.error('解析响应数据失败:', e);
+                    }
+                }
+            }
+        }
+        
+        // 将完整响应添加到历史记录
+        if (lastContent && currentChatId) {
+            chatHistories[currentChatId].messages.push({
+                role: 'assistant',
+                content: lastContent
+            });
+            saveChatHistories();
+        }
     } catch (error) {
+        console.error('解析请求失败:', error);
         addMessage('system', '解析请求失败');
     }
     floatingMenu.style.display = 'none';
@@ -137,22 +192,72 @@ async function handleAnalyze() {
 async function handleTranslate() {
     if (!selectedText) return;
     
-    addMessage('user', `请将以下文本翻译成中文：: ${selectedText}`);
+    const prompt = `请将以下文本翻译成中文：\n${selectedText}`;
+    
+    // 使用通用的聊天接口
+    addMessage('user', prompt);
     try {
-        const response = await fetch('/api/translate', {
+        const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                text: selectedText,
-                model: localStorage.getItem('selectedModel') || 'ollama'  // 放在 body 中
+                text: prompt,
+                session_id: currentChatId,
+                messages: chatHistories[currentChatId].messages,
+                model: localStorage.getItem('selectedModel') || 'ollama'
             })
         });
+
+        // 创建一个新的消息元素用于流式输出
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message system';
+        document.getElementById('chat-messages').appendChild(messageDiv);
         
-        const data = await response.json();
-        addMessage('system', data.result);
+        // 读取流式响应
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let lastContent = '';
+        
+        while (true) {
+            const {value, done} = await reader.read();
+            if (done) break;
+            
+            const text = decoder.decode(value);
+            const lines = text.split('\n');
+            
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const data = JSON.parse(line.slice(6));
+                        const newContent = data.content;
+                        const addedContent = newContent.slice(lastContent.length);
+                        if (addedContent) {
+                            messageDiv.textContent += addedContent;
+                            lastContent = newContent;
+                            
+                            // 自动滚动到底部
+                            const chatMessages = document.getElementById('chat-messages');
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                        }
+                    } catch (e) {
+                        console.error('解析响应数据失败:', e);
+                    }
+                }
+            }
+        }
+        
+        // 将完整响应添加到历史记录
+        if (lastContent && currentChatId) {
+            chatHistories[currentChatId].messages.push({
+                role: 'assistant',
+                content: lastContent
+            });
+            saveChatHistories();
+        }
     } catch (error) {
+        console.error('翻译请求失败:', error);
         addMessage('system', '翻译请求失败');
     }
     floatingMenu.style.display = 'none';
