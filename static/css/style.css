@@ -168,7 +168,7 @@ body, html {
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 300px;
+    width: 320px;
     height: 400px;
     min-width: 250px;   /* 添加最小尺寸限制 */
     min-height: 300px;  /* 添加最小尺寸限制 */
@@ -198,6 +198,9 @@ body, html {
     transform-origin: center;
     min-width: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
     max-width: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
+    min-height: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
+    max-height: 48px !important;  /* 添加这行一控制缩小后的尺寸 */
+    resize: none !important;  /* 禁用折叠状态下的大小调整 */
 }
 
 /* 浮动聊天框折叠状态下的头部样式 */
